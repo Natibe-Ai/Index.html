@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopFloor OS — Paper Cups</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#f8f8f6;--bg2:#ffffff;--bg3:#f1efe8;--text:#1a1a18;--text2:#6b6b67;--text3:#a0a09a;--border:#e2e0d8;--border2:#c8c6be;--radius:8px;--radius-lg:12px;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh;}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden;position:relative;}
+.topbar{background:var(--bg2);border-bottom:0.5px solid var(--border2);padding:0 14px;height:48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-title{font-size:14px;font-weight:500;}
+.topbar-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+#clock{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);}
+.btn-sm{font-size:12px;padding:5px 11px;background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);cursor:pointer;color:var(--text);font-family:inherit;transition:background 0.1s;white-space:nowrap;}
+.btn-sm:hover{background:var(--bg3);}
+.btn-voice{display:flex;align-items:center;gap:5px;padding:5px 11px;background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);cursor:pointer;font-family:inherit;font-size:12px;color:var(--text);transition:all 0.15s;}
+.btn-voice.active{border-color:#ef4444;background:#ef44440d;color:#ef4444;}
+.mic-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);}
+.btn-voice.active .mic-dot{background:#ef4444;animation:blink 1s infinite;}
+.nav{background:var(--bg2);border-bottom:0.5px solid var(--border);display:flex;padding:0 14px;flex-shrink:0;overflow-x:auto;}
+.nav-tab{padding:9px 13px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500;}
+.ntag{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:99px;font-size:10px;background:#ef444418;color:#dc2626;font-weight:500;}
+.content{flex:1;overflow-y:auto;padding:12px;}
+.content::-webkit-scrollbar{width:4px;}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+.loading-overlay{position:absolute;inset:0;background:rgba(248,248,246,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:12px;}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+.stat-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:9px 12px;}
+.stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.stat-value{font-size:20px;font-weight:500;line-height:1;}
+.stat-sub{font-size:10px;color:var(--text2);margin-top:2px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:11px 13px;}
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+.sec-title{font-size:13px;font-weight:500;}
+.machine-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;}
+.mc{border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 5px;text-align:center;cursor:pointer;transition:all 0.15s;position:relative;}
+.mc:hover{transform:translateY(-1px);border-color:var(--border2);}
+.mc.running{border-color:#22c55e55;background:#22c55e0a;}
+.mc.down{border-color:#ef444466;background:#ef44440d;}
+.mc.idle{border-color:#f59e0b55;background:#f59e0b0a;}
+.mc.maintenance{border-color:#6366f155;background:#6366f10a;}
+.mc-num{font-size:15px;font-weight:500;font-family:'IBM Plex Mono',monospace;line-height:1;}
+.mc-name{font-size:9px;color:var(--text2);margin-top:1px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mc-dot{width:7px;height:7px;border-radius:50%;margin:3px auto 2px;}
+.dot-r{background:#22c55e;}.dot-d{background:#ef4444;}.dot-i{background:#f59e0b;}.dot-m{background:#6366f1;}
+.mc-status{font-size:9px;color:var(--text2);}
+.mc-edit{position:absolute;top:3px;right:3px;font-size:10px;cursor:pointer;opacity:0;transition:opacity 0.15s;border:none;background:none;padding:1px 3px;border-radius:3px;color:var(--text3);}
+.mc:hover .mc-edit{opacity:1;}
+.mc-alert{position:absolute;top:3px;left:3px;width:7px;height:7px;border-radius:50%;background:#ef4444;display:none;}
+.mc.down .mc-alert{display:block;}
+.jt{width:100%;border-collapse:collapse;font-size:12px;}
+.jt th{font-size:11px;font-weight:500;color:var(--text2);text-align:left;padding:5px 8px;border-bottom:0.5px solid var(--border);}
+.jt td{padding:7px 8px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
+.jt tr:last-child td{border-bottom:none;}
+.jt tr:hover td{background:var(--bg3);}
+.badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:11px;font-weight:500;}
+.b-run{background:#22c55e18;color:#16a34a;}.b-pend{background:#f59e0b18;color:#d97706;}
+.b-done{background:#64748b18;color:#64748b;}.b-del{background:#ef444418;color:#dc2626;}
+.b-sa{background:#22c55e18;color:#16a34a;}.b-sb{background:#3b82f618;color:#1d4ed8;}.b-sc{background:#8b5cf618;color:#6d28d9;}
+.print-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;background:#e0f2fe;color:#0369a1;font-weight:500;}
+.pb-wrap{background:var(--border);border-radius:99px;height:4px;width:60px;display:inline-block;vertical-align:middle;}
+.pb{height:4px;border-radius:99px;}
+.wr{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px;}
+.wr:last-child{border-bottom:none;}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0;}
+.wi{flex:1;}.wn{font-weight:500;font-size:12px;}.wr-role{color:var(--text2);font-size:11px;}
+.wa{font-size:11px;color:var(--text2);text-align:right;}
+.inv-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px;}
+.inv-row:last-child{border-bottom:none;}
+.inv-name{flex:1;}
+.inv-qty{font-family:'IBM Plex Mono',monospace;font-size:11px;min-width:55px;text-align:right;}
+.step-bar{display:flex;gap:0;margin:8px 0;}
+.step-seg{flex:1;height:4px;border-radius:2px;margin:0 1px;}
+.inc-card{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:11px 13px;margin-bottom:9px;}
+.inc-card.open-1{border-color:#ef444455;background:#ef44440a;}
+.inc-card.open-2{border-color:#f59e0b55;background:#f59e0b08;}
+.inc-card.open-3{border-color:#22c55e55;background:#22c55e08;}
+.inc-closed{background:var(--bg3);}
+.tl-row{display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px;}
+.tl-row:last-child{border-bottom:none;}
+.tl-dot-wrap{display:flex;flex-direction:column;align-items:center;width:12px;flex-shrink:0;padding-top:3px;}
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.tl-line{width:1px;flex:1;background:var(--border);margin-top:3px;}
+.action-box{margin-top:10px;padding:10px 12px;border-radius:var(--radius);border:0.5px solid;}
+.action-box-1{border-color:#f59e0b44;background:#f59e0b06;}
+.action-box-2{border-color:#22c55e44;background:#22c55e06;}
+.action-box-3{border-color:#3b82f644;background:#3b82f606;}
+.action-label{font-size:11px;font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;}
+.al-1{color:#b45309;}.al-2{color:#16a34a;}.al-3{color:#1d4ed8;}
+.fl{font-size:12px;color:var(--text2);margin-bottom:3px;display:block;margin-top:7px;}
+.fi,.fs{width:100%;padding:6px 9px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-family:inherit;}
+.two-fi{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.btn-step{padding:7px 16px;font-size:12px;font-weight:500;border:none;border-radius:var(--radius);cursor:pointer;font-family:inherit;}
+.bs-1{background:#ef4444;color:#fff;}.bs-2{background:#f59e0b;color:#fff;}
+.bs-3{background:#22c55e;color:#fff;}.bs-4{background:#3b82f6;color:#fff;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:200;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-lg);padding:16px;width:360px;max-width:94vw;max-height:88vh;overflow-y:auto;}
+.modal-title{font-size:14px;font-weight:500;margin-bottom:11px;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{cursor:pointer;color:var(--text2);font-size:18px;line-height:1;border:none;background:none;font-family:inherit;}
+.fg{margin-bottom:9px;}
+.btn-primary{width:100%;padding:8px;font-size:13px;font-weight:500;background:var(--text);color:var(--bg2);border:none;border-radius:var(--radius);cursor:pointer;font-family:inherit;margin-top:5px;}
+.btn-primary:hover{opacity:0.85;}
+.shift-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.shift-tab{padding:4px 12px;font-size:12px;border:0.5px solid var(--border2);border-radius:99px;cursor:pointer;color:var(--text2);background:var(--bg2);}
+.shift-tab.active{background:var(--text);color:var(--bg2);border-color:var(--text);}
+.voice-bar{background:var(--bg2);border-top:0.5px solid var(--border2);padding:9px 14px;display:none;flex-shrink:0;}
+.voice-bar.open{display:block;}
+.vb-inner{display:flex;align-items:center;gap:10px;}
+.vb-status-line{font-weight:500;font-size:12px;margin-bottom:4px;}
+.wave-bars{display:flex;align-items:center;gap:3px;height:18px;}
+.wb{width:3px;border-radius:2px;background:#ef4444;height:5px;}
+.listening .wb{animation:wv 0.8s ease-in-out infinite;}
+.wb:nth-child(1){animation-delay:0s;}.wb:nth-child(2){animation-delay:.1s;}.wb:nth-child(3){animation-delay:.2s;}.wb:nth-child(4){animation-delay:.3s;}.wb:nth-child(5){animation-delay:.15s;}
+@keyframes wv{0%,100%{height:4px}50%{height:16px}}
+.suggest-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.spill{padding:3px 9px;font-size:11px;border:0.5px solid var(--border);border-radius:99px;cursor:pointer;color:var(--text2);background:var(--bg2);}
+.spill:hover{border-color:var(--border2);color:var(--text);}
+.vb-transcript{font-size:12px;color:var(--text2);margin-top:5px;font-style:italic;min-height:14px;}
+.vb-result{margin-top:8px;padding:9px 11px;background:var(--bg3);border-radius:var(--radius);display:none;}
+.vb-result.show{display:block;}
+.vb-rtype{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;}
+.vb-fields{display:flex;flex-wrap:wrap;gap:5px 14px;margin-bottom:7px;font-size:12px;}
+.vb-field{display:flex;gap:3px;}.vbfl{color:var(--text2);}.vbfv{font-weight:500;}
+.vb-actions{display:flex;gap:7px;}
+.vb-confirm{padding:5px 13px;font-size:12px;font-weight:500;background:var(--text);color:var(--bg2);border:none;border-radius:var(--radius);cursor:pointer;font-family:inherit;}
+.vb-cancel{padding:5px 11px;font-size:12px;background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);cursor:pointer;color:var(--text2);font-family:inherit;}
+.toast{position:fixed;bottom:20px;right:14px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 13px;font-size:12px;z-index:400;display:none;max-width:280px;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.toast.show{display:block;}
+.hist-item{background:var(--bg3);border-radius:var(--radius);padding:9px 11px;margin-bottom:6px;font-size:12px;}
+.hist-steps{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+.hstep{font-size:10px;padding:2px 7px;border-radius:99px;}
+.hs1{background:#ef444418;color:#dc2626;}.hs2{background:#f59e0b18;color:#b45309;}
+.hs3{background:#22c55e18;color:#16a34a;}.hs4{background:#3b82f618;color:#1d4ed8;}
+@media(max-width:600px){.stat-row{grid-template-columns:repeat(2,1fr);}.two-col,.three-col{grid-template-columns:1fr;}.machine-grid{grid-template-columns:repeat(5,1fr);}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:#6b6b67;">Loading ShopFloor OS...</div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-title">ShopFloor OS — Paper Cups</div>
+  <div class="topbar-right">
+    <span style="font-size:11px;color:#6b6b67;display:flex;align-items:center;gap:4px;"><span class="live-dot"></span>Live</span>
+    <span id="clock"></span>
+    <button class="btn-voice" id="voice-toggle" onclick="toggleVoiceBar()"><span class="mic-dot" id="mic-dot"></span>Voice</button>
+    <button class="btn-sm" onclick="openModal('job')">+ New Job</button>
+    <button class="btn-sm" onclick="switchTab('downtime')" style="border-color:#ef444455;color:#dc2626;">Report Downtime</button>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="switchTab('overview')">Overview</div>
+  <div class="nav-tab" onclick="switchTab('machines')">Machines</div>
+  <div class="nav-tab" onclick="switchTab('jobs')">Jobs</div>
+  <div class="nav-tab" onclick="switchTab('shifts')">Shifts</div>
+  <div class="nav-tab" onclick="switchTab('team')">Team</div>
+  <div class="nav-tab" id="dt-tab" onclick="switchTab('downtime')">Downtime<span class="ntag" id="dt-ntag" style="display:none">0</span></div>
+  <div class="nav-tab" onclick="switchTab('inventory')">Inventory</div>
+</div>
+
+<div class="content">
+  <div class="tab-panel active" id="tab-overview">
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">Running</div><div class="stat-value" style="color:#22c55e" id="s-run">—</div><div class="stat-sub">of 30 machines</div></div>
+      <div class="stat-card"><div class="stat-label">Down</div><div class="stat-value" style="color:#ef4444" id="s-dn">—</div><div class="stat-sub">active alerts</div></div>
+      <div class="stat-card"><div class="stat-label">Idle / Maint.</div><div class="stat-value" style="color:#f59e0b" id="s-idle">—</div><div class="stat-sub">not producing</div></div>
+      <div class="stat-card"><div class="stat-label">Active Jobs</div><div class="stat-value" id="s-jb">—</div><div class="stat-sub">orders</div></div>
+      <div class="stat-card"><div class="stat-label">Current Shift</div><div class="stat-value" style="font-size:14px;padding-top:4px;" id="s-shift">—</div><div class="stat-sub" id="s-shift-time">—</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Machine Floor</div><button class="btn-sm" onclick="switchTab('machines')">Manage</button></div><div class="machine-grid" id="ov-grid"></div></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Open Downtime Issues</div><span class="badge b-del" id="ov-dt-badge">0 open</span></div><div id="ov-dt-list"></div></div>
+    </div>
+    <div class="two-col">
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Jobs in Progress</div><button class="btn-sm" onclick="switchTab('jobs')">View all</button></div><table class="jt"><thead><tr><th>Job</th><th>Print</th><th>Machine</th><th>Progress</th><th>Status</th></tr></thead><tbody id="ov-jobs"></tbody></table></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Current Shift Team</div></div><div id="ov-team"></div></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-machines">
+    <div class="card" style="margin-bottom:10px;">
+      <div class="sec-hdr"><div><div class="sec-title">All 30 Machines</div><div style="font-size:11px;color:#6b6b67;margin-top:1px;">Hover → ✎ to rename · Click to view history</div></div>
+        <div style="display:flex;gap:8px;font-size:11px;align-items:center;">
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-right:2px;"></span>Running</span>
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;vertical-align:middle;margin-right:2px;"></span>Idle</span>
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;vertical-align:middle;margin-right:2px;"></span>Down</span>
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6366f1;vertical-align:middle;margin-right:2px;"></span>Maint.</span>
+        </div>
+      </div>
+      <div class="machine-grid" id="full-grid"></div>
+    </div>
+    <div class="card" id="mach-detail-card" style="display:none;"><div class="sec-hdr"><div class="sec-title" id="mach-detail-title">Machine History</div><button class="btn-sm" onclick="document.getElementById('mach-detail-card').style.display='none'">Close</button></div><div id="mach-detail-body"></div></div>
+    <div class="card"><div class="sec-hdr"><div class="sec-title">Floor Summary</div></div><div id="mach-summary"></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-jobs">
+    <div class="card"><div class="sec-hdr"><div class="sec-title">Production Orders</div><button class="btn-sm" onclick="openModal('job')">+ New Job</button></div>
+      <div style="overflow-x:auto;"><table class="jt" style="min-width:560px;"><thead><tr><th>Job ID</th><th>Print</th><th>Machine</th><th>Operator</th><th>Qty (k)</th><th>Progress</th><th>Shift</th><th>Due</th><th>Status</th></tr></thead><tbody id="full-jobs"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-shifts">
+    <div class="sec-hdr" style="margin-bottom:8px;"><div class="sec-title">Shift Schedule</div><div style="font-size:11px;color:#6b6b67;">A: 6am–2pm · B: 2pm–10pm · C: 10pm–6am</div></div>
+    <div class="shift-tabs">
+      <div class="shift-tab active" onclick="switchShift('A',this)">Shift A — 6am–2pm</div>
+      <div class="shift-tab" onclick="switchShift('B',this)">Shift B — 2pm–10pm</div>
+      <div class="shift-tab" onclick="switchShift('C',this)">Shift C — 10pm–6am</div>
+    </div>
+    <div class="two-col">
+      <div class="card"><div class="sec-hdr"><div class="sec-title" id="shift-label">Shift A Team</div><button class="btn-sm" onclick="openModal('worker')">+ Add Worker</button></div><div id="shift-team"></div></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Machine Assignments</div></div><div id="shift-machines"></div></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-team">
+    <div class="three-col">
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Shift A <span class="badge b-sa">6am–2pm</span></div></div><div id="team-a"></div></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Shift B <span class="badge b-sb">2pm–10pm</span></div></div><div id="team-b"></div></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Shift C <span class="badge b-sc">10pm–6am</span></div></div><div id="team-c"></div></div>
+    </div>
+    <div class="card"><div class="sec-hdr"><div class="sec-title">Management &amp; Supervisors</div></div><div id="team-mgmt"></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-downtime">
+    <div class="two-col" style="margin-bottom:10px;">
+      <div class="card">
+        <div class="sec-hdr"><div class="sec-title">Step 1 — Operator: Report Machine Down</div></div>
+        <div class="two-fi">
+          <div><label class="fl">Machine</label><select class="fs" id="dt-mach"></select></div>
+          <div><label class="fl">Time went down</label><input class="fi" type="time" id="dt-time"></div>
+        </div>
+        <label class="fl">Your name (operator)</label>
+        <input class="fi" id="dt-op" placeholder="Your name">
+        <label class="fl">What happened / reason</label>
+        <input class="fi" id="dt-reason" placeholder="e.g. Paper jam, heat seal fault">
+        <label class="fl" style="display:flex;align-items:center;gap:6px;">Print name running when it went down <span style="font-size:10px;background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:99px;">Print</span></label>
+        <input class="fi" id="dt-print" placeholder="e.g. Coca-Cola Summer, Plain White">
+        <div style="margin-top:10px;"><button class="btn-step bs-1" onclick="reportDown()">Report Machine Down</button></div>
+      </div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Open Issues</div><span class="badge b-del" id="open-badge">0</span></div><div id="open-issues"></div></div>
+    </div>
+    <div class="card"><div class="sec-hdr"><div class="sec-title">Resolved Incidents — Full Log</div></div><div id="full-log"></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-inventory">
+    <div class="two-col">
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Raw Materials</div><button class="btn-sm" onclick="openModal('inv')">+ Add Item</button></div><div id="inv-raw"></div></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">Maintenance Parts</div></div><div id="inv-parts"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="voice-bar" id="voice-bar">
+  <div class="vb-inner">
+    <div class="wave-bars" id="wave-bars"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+    <div style="flex:1;font-size:12px;">
+      <div class="vb-status-line" id="vb-status">Voice ready — tap to speak</div>
+      <div class="suggest-pills">
+        <span class="spill" onclick="simulate('Machine 7 is down paper jam print Coca-Cola Summer')">Machine down</span>
+        <span class="spill" onclick="simulate('Maintenance machine 7 we are on it')">Maint. on it</span>
+        <span class="spill" onclick="simulate('Machine 7 is fixed and ready')">Machine fixed</span>
+        <span class="spill" onclick="simulate('Machine 7 operator ok running')">Operator OK</span>
+        <span class="spill" onclick="simulate('New job print RedBull Logo machine 5')">New job</span>
+      </div>
+    </div>
+    <button class="btn-sm" id="mic-btn" onclick="toggleListen()" style="flex-shrink:0;">Tap to speak</button>
+  </div>
+  <div class="vb-transcript" id="vb-transcript"></div>
+  <div class="vb-result" id="vb-result">
+    <div class="vb-rtype" id="vb-rtype"></div>
+    <div class="vb-fields" id="vb-fields"></div>
+    <div class="vb-actions" style="margin-top:7px;"><button class="vb-confirm" onclick="confirmVoice()">Confirm &amp; Log</button><button class="vb-cancel" onclick="cancelVoice()">Cancel</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modal-job"><div class="modal">
+  <div class="modal-title">New Production Job <button class="modal-close" onclick="closeModal('job')">×</button></div>
+  <div class="fg"><label class="fl">Job ID</label><input class="fi" id="fj-id" placeholder="e.g. JOB-001"></div>
+  <div class="fg"><label class="fl">Print name</label><input class="fi" id="fj-print" placeholder="e.g. Coca-Cola Summer, Plain White"></div>
+  <div class="fg"><label class="fl">Machine</label><select class="fs" id="fj-mach"></select></div>
+  <div class="fg"><label class="fl">Operator</label><input class="fi" id="fj-op" placeholder="Name"></div>
+  <div class="fg"><label class="fl">Quantity (thousands)</label><input class="fi" id="fj-qty" type="number" placeholder="50"></div>
+  <div class="fg"><label class="fl">Shift</label><select class="fs" id="fj-shift"><option value="A">Shift A — 6am–2pm</option><option value="B">Shift B — 2pm–10pm</option><option value="C">Shift C — 10pm–6am</option></select></div>
+  <div class="fg"><label class="fl">Due Date</label><input class="fi" id="fj-due" type="date"></div>
+  <button class="btn-primary" onclick="addJob()">Create Job</button>
+</div></div>
+
+<div class="modal-bg" id="modal-inv"><div class="modal">
+  <div class="modal-title">Add Inventory Item <button class="modal-close" onclick="closeModal('inv')">×</button></div>
+  <div class="fg"><label class="fl">Item Name</label><input class="fi" id="fi-name" placeholder="e.g. Paper Roll 32oz"></div>
+  <div class="fg"><label class="fl">Quantity</label><input class="fi" id="fi-qty" type="number" placeholder="100"></div>
+  <div class="fg"><label class="fl">Unit</label><select class="fs" id="fi-unit"><option>rolls</option><option>pcs</option><option>kg</option><option>L</option><option>boxes</option></select></div>
+  <div class="fg"><label class="fl">Min Stock Level</label><input class="fi" id="fi-min" type="number" placeholder="20"></div>
+  <div class="fg"><label class="fl">Category</label><select class="fs" id="fi-cat"><option value="raw">Raw Material</option><option value="maintenance">Maintenance Part</option></select></div>
+  <button class="btn-primary" onclick="addInv()">Add Item</button>
+</div></div>
+
+<div class="modal-bg" id="modal-rename"><div class="modal">
+  <div class="modal-title">Rename Machine <button class="modal-close" onclick="closeModal('rename')">×</button></div>
+  <div style="font-size:12px;color:#6b6b67;margin-bottom:10px;" id="rename-current"></div>
+  <div class="fg"><label class="fl">New name</label><input class="fi" id="rename-input" placeholder="e.g. Speed Line A"></div>
+  <div class="fg"><label class="fl">Cup size</label><select class="fs" id="rename-size"><option value="">— not specified —</option><option value="32oz">32oz</option><option value="44oz">44oz</option><option value="Both">Both</option></select></div>
+  <button class="btn-primary" onclick="applyRename()">Save</button>
+</div></div>
+
+<div class="modal-bg" id="modal-worker"><div class="modal">
+  <div class="modal-title">Add Worker <button class="modal-close" onclick="closeModal('worker')">×</button></div>
+  <div class="fg"><label class="fl">Name</label><input class="fi" id="fw-name" placeholder="Worker name"></div>
+  <div class="fg"><label class="fl">Role</label><select class="fs" id="fw-role"><option>Machine Operator</option><option>Technician</option><option>QC Inspector</option><option>Line Supervisor</option></select></div>
+  <div class="fg"><label class="fl">Shift</label><select class="fs" id="fw-shift"><option value="A">Shift A</option><option value="B">Shift B</option><option value="C">Shift C</option></select></div>
+  <div class="fg"><label class="fl">Machine</label><select class="fs" id="fw-mach"></select></div>
+  <button class="btn-primary" onclick="addWorker()">Add Worker</button>
+</div></div>
+
+<script>
+const SUPABASE_URL = 'https://cabcnisljuymyfblaqgq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhYmNuaXNsanV5bXlmYmxhcWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjAzNjgsImV4cCI6MjA4OTU5NjM2OH0.xNjA3AlkC_DwdcNfZexgm994FE5xk04s4iIe2tVVuqo';
+
+const db = {
+  async get(table, query='') {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}&order=id`, {
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`}
+    });
+    return r.json();
+  },
+  async insert(table, data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method:'POST',
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type':'application/json', 'Prefer':'return=representation'},
+      body: JSON.stringify(data)
+    });
+    return r.json();
+  },
+  async update(table, match, data) {
+    const q = Object.entries(match).map(([k,v])=>`${k}=eq.${v}`).join('&');
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${q}`, {
+      method:'PATCH',
+      headers: {'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  }
+};
+
+let machines=[], jobs=[], incidents=[], workers=[], inventory=[];
+let renamingMachNum=null, selectedShift='A', listening=false, pendingVoice=null, recognition=null;
+let incCounter=1;
+
+function nowTime(){const d=new Date();return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+function todayStr(){return new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
+function mLabel(m){return m.name?`#${m.num} — ${m.name}`:`Machine ${m.num}`;}
+function mShort(m){return m.name?`#${m.num} ${m.name}`:`#${m.num}`;}
+function getCurrentShift(){const h=new Date().getHours();if(h>=6&&h<14)return{key:'A',label:'Shift A',time:'6am–2pm'};if(h>=14&&h<22)return{key:'B',label:'Shift B',time:'2pm–10pm'};return{key:'C',label:'Shift C',time:'10pm–6am'};}
+function calcDuration(t1,t2){if(!t1||!t2)return null;const[h1,m1]=t1.split(':').map(Number);const[h2,m2]=t2.split(':').map(Number);const d=(h2*60+m2)-(h1*60+m1);if(d<=0)return null;return d<60?`${d}min`:`${Math.floor(d/60)}h ${d%60}min`;}
+function stepColors(n){return['#ef4444','#f59e0b','#22c55e','#3b82f6'][n-1];}
+function printTag(p){return p&&p!=='—'?`<span class="print-tag">${p}</span>`:'<span style="color:#a0a09a;font-size:11px;">—</span>';}
+
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+async function loadAll() {
+  document.getElementById('loading').style.display='flex';
+  try {
+    [machines, jobs, incidents, workers, inventory] = await Promise.all([
+      db.get('machines','select=*&order=num'),
+      db.get('jobs','select=*&order=created_at.desc'),
+      db.get('incidents','select=*&order=created_at.desc'),
+      db.get('workers','select=*'),
+      db.get('inventory','select=*')
+    ]);
+    incCounter = incidents.length + 1;
+  } catch(e) {
+    showToast('Connection error — check Supabase setup');
+  }
+  document.getElementById('loading').style.display='none';
+  renderAll();
+  // auto-refresh every 15 seconds so team sees live updates
+  setInterval(async()=>{
+    machines = await db.get('machines','select=*&order=num');
+    incidents = await db.get('incidents','select=*&order=created_at.desc');
+    jobs = await db.get('jobs','select=*&order=created_at.desc');
+    updateDTBadge();
+    renderMachineGrid('ov-grid');
+    renderMachineGrid('full-grid');
+    renderOvDT();
+    renderOpenIssues();
+    updateStats();
+  }, 15000);
+}
+
+function switchTab(id){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  const tabs={overview:0,machines:1,jobs:2,shifts:3,team:4,downtime:5,inventory:6};
+  document.querySelectorAll('.nav-tab')[tabs[id]].classList.add('active');
+  if(id==='downtime')populateDTForm();
+  renderAll();
+}
+function switchShift(s,el){selectedShift=s;document.querySelectorAll('.shift-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderShiftPanel();}
+function openModal(id){
+  if(id==='job'||id==='worker'){const sel=document.getElementById(id==='job'?'fj-mach':'fw-mach');if(sel)sel.innerHTML=(id==='worker'?'<option value="">— not assigned —</option>':'')+machines.map(m=>`<option value="${m.num}">${mLabel(m)}</option>`).join('');}
+  document.getElementById('modal-'+id).classList.add('open');
+}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+function populateDTForm(){
+  const sel=document.getElementById('dt-mach');if(sel)sel.innerHTML=machines.map(m=>`<option value="${m.num}">${mLabel(m)}${m.size?' ('+m.size+')':''}</option>`).join('');
+  const ti=document.getElementById('dt-time');if(ti&&!ti.value)ti.value=nowTime();
+}
+
+function startRename(num){
+  renamingMachNum=num;
+  const m=machines.find(x=>x.num===num);
+  document.getElementById('rename-current').textContent=`Currently: ${mLabel(m)}`;
+  document.getElementById('rename-input').value=m.name||'';
+  document.getElementById('rename-size').value=m.size||'';
+  openModal('rename');
+}
+async function applyRename(){
+  if(!renamingMachNum)return;
+  const name=document.getElementById('rename-input').value.trim();
+  const size=document.getElementById('rename-size').value;
+  await db.update('machines',{num:renamingMachNum},{name,size});
+  const m=machines.find(x=>x.num===renamingMachNum);if(m){m.name=name;if(size)m.size=size;}
+  closeModal('rename');showToast(`Machine ${renamingMachNum} updated`);renderAll();
+}
+
+async function reportDown(){
+  const mNum=parseInt(document.getElementById('dt-mach').value);
+  const time=document.getElementById('dt-time').value||nowTime();
+  const op=document.getElementById('dt-op').value.trim();
+  const reason=document.getElementById('dt-reason').value.trim();
+  const print=document.getElementById('dt-print').value.trim();
+  if(!op){showToast('Please enter your name');return;}
+  if(!reason){showToast('Please enter what happened');return;}
+  const id=`DT-${String(incCounter++).padStart(3,'0')}`;
+  const inc={id,machine_num:mNum,date:todayStr(),step:1,s1_time:time,s1_op:op,s1_reason:reason,s1_print:print||'—',s1_logged_at:nowTime()};
+  await db.insert('incidents',inc);
+  await db.update('machines',{num:mNum},{status:'down'});
+  const m=machines.find(x=>x.num===mNum);if(m)m.status='down';
+  incidents.unshift({...inc,s2_time:null,s3_time:null,s3_note:null,s4_time:null,s4_started_at:null,total_downtime:null});
+  document.getElementById('dt-op').value='';document.getElementById('dt-reason').value='';document.getElementById('dt-print').value='';
+  showToast(`Machine ${mNum} reported down`);renderAll();updateDTBadge();
+}
+
+async function step2(id){
+  const inc=incidents.find(x=>x.id===id);if(!inc||inc.step!==1)return;
+  const t=nowTime();
+  await db.update('incidents',{id},{step:2,s2_time:t});
+  await db.update('machines',{num:inc.machine_num},{status:'maintenance'});
+  inc.step=2;inc.s2_time=t;
+  const m=machines.find(x=>x.num===inc.machine_num);if(m)m.status='maintenance';
+  showToast(`Maintenance acknowledged Machine ${inc.machine_num}`);renderAll();
+}
+async function step3(id){
+  const inc=incidents.find(x=>x.id===id);if(!inc||inc.step!==2)return;
+  const n=document.getElementById('s3n-'+id);
+  const note=n?n.value.trim():'';const t=nowTime();
+  await db.update('incidents',{id},{step:3,s3_time:t,s3_note:note});
+  inc.step=3;inc.s3_time=t;inc.s3_note=note;
+  showToast(`Machine ${inc.machine_num} marked ready`);renderAll();
+}
+async function step4(id){
+  const inc=incidents.find(x=>x.id===id);if(!inc||inc.step!==3)return;
+  const wt=document.getElementById('s4t-'+id);
+  const startedAt=wt?wt.value:nowTime();const t=nowTime();
+  const dur=calcDuration(inc.s1_time,t);
+  await db.update('incidents',{id},{step:4,s4_time:t,s4_started_at:startedAt,total_downtime:dur||null});
+  await db.update('machines',{num:inc.machine_num},{status:'running'});
+  inc.step=4;inc.s4_time=t;inc.s4_started_at=startedAt;inc.total_downtime=dur;
+  const m=machines.find(x=>x.num===inc.machine_num);if(m)m.status='running';
+  showToast(`Machine ${inc.machine_num} RUNNING! Downtime: ${dur||'—'}`);renderAll();updateDTBadge();
+}
+
+async function addJob(){
+  const id=document.getElementById('fj-id').value||`JOB-${Date.now()}`;
+  const print=document.getElementById('fj-print').value.trim()||'—';
+  const machine_num=parseInt(document.getElementById('fj-mach').value)||1;
+  const operator=document.getElementById('fj-op').value||'—';
+  const qty=parseInt(document.getElementById('fj-qty').value)||50;
+  const shift=document.getElementById('fj-shift').value;
+  const due=document.getElementById('fj-due').value||'TBD';
+  const job={id,print,machine_num,operator,qty,done:0,shift,due,status:'pending'};
+  await db.insert('jobs',job);
+  jobs.unshift(job);closeModal('job');renderAll();showToast(`Job ${id} created`);
+}
+
+async function addInv(){
+  const name=document.getElementById('fi-name').value||'New Item';
+  const qty=parseInt(document.getElementById('fi-qty').value)||0;
+  const unit=document.getElementById('fi-unit').value;
+  const min_qty=parseInt(document.getElementById('fi-min').value)||10;
+  const category=document.getElementById('fi-cat').value;
+  const item={name,qty,unit,min_qty,category};
+  await db.insert('inventory',item);
+  inventory.push(item);closeModal('inv');renderAll();
+}
+
+async function addWorker(){
+  const name=document.getElementById('fw-name').value||'New Worker';
+  const role=document.getElementById('fw-role').value;
+  const shift=document.getElementById('fw-shift').value;
+  const machine_num=parseInt(document.getElementById('fw-mach').value)||null;
+  const colors=['#3b82f6','#8b5cf6','#f59e0b','#ec4899','#14b8a6','#22c55e','#ef4444','#f97316'];
+  const color=colors[Math.floor(Math.random()*colors.length)];
+  const w={name,role,shift,machine_num,color};
+  await db.insert('workers',w);
+  workers.push(w);closeModal('worker');renderAll();showToast(`${name} added to Shift ${shift}`);
+}
+
+function incCard(inc){
+  const isOpen=inc.step<4;const curColor=stepColors(Math.min(inc.step,4));
+  let actionHtml='';
+  if(inc.step===1)actionHtml=`<div class="action-box action-box-1"><div class="action-label al-1">Step 2 — Maintenance: Acknowledge</div><button class="btn-step bs-2" onclick="step2('${inc.id}')">We are on it</button></div>`;
+  else if(inc.step===2)actionHtml=`<div class="action-box action-box-2"><div class="action-label al-2">Step 3 — Maintenance: Mark Fixed</div><label style="font-size:12px;color:#6b6b67;display:block;margin-bottom:4px;">What was done (optional)</label><input class="fi" id="s3n-${inc.id}" placeholder="e.g. Replaced heat seal, cleared jam" style="margin-bottom:8px;"><button class="btn-step bs-3" onclick="step3('${inc.id}')">Machine is ready</button></div>`;
+  else if(inc.step===3)actionHtml=`<div class="action-box action-box-3"><div class="action-label al-3">Step 4 — Operator: Confirm &amp; Restart</div><label style="font-size:12px;color:#6b6b67;display:block;margin-bottom:3px;">Time started</label><input class="fi" type="time" id="s4t-${inc.id}" value="${nowTime()}" style="margin-bottom:8px;"><button class="btn-step bs-4" onclick="step4('${inc.id}')">OK — Machine is running</button></div>`;
+  return`<div class="inc-card ${isOpen?'open-'+inc.step:'inc-closed'}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6b67;">${inc.id}</span>
+      <span style="font-weight:500;">${mShort(machines.find(x=>x.num===inc.machine_num)||{num:inc.machine_num,name:''})}</span>
+      ${printTag(inc.s1_print)}
+      <span style="font-size:11px;color:#6b6b67;">${inc.date}</span>
+      <span style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:99px;background:${curColor}18;color:${curColor};font-weight:500;">${isOpen?'Step '+(inc.step+1)+'/4':'Resolved'}</span>
+      ${inc.total_downtime?`<span style="font-size:11px;color:#6b6b67;">⏱ ${inc.total_downtime}</span>`:''}
+    </div>
+    <div class="step-bar">${[1,2,3,4].map(n=>`<div class="step-seg" style="background:${inc.step>=n?stepColors(n):'#e2e0d8'};"></div>`).join('')}</div>
+    <div style="margin-top:8px;">
+      <div class="tl-row"><div class="tl-dot-wrap"><div class="tl-dot" style="background:#ef4444;"></div>${inc.step>1?'<div class="tl-line"></div>':''}</div><div><div style="font-size:10px;font-weight:500;color:#dc2626;text-transform:uppercase;letter-spacing:0.4px;">Step 1 — Operator</div><div style="font-weight:500;">${inc.s1_reason}</div><div style="font-size:11px;color:#6b6b67;">${inc.s1_op} · Down at ${inc.s1_time}${inc.s1_print&&inc.s1_print!=='—'?' · Print: '+inc.s1_print:''}</div></div></div>
+      ${inc.s2_time?`<div class="tl-row"><div class="tl-dot-wrap"><div class="tl-dot" style="background:#f59e0b;"></div>${inc.step>2?'<div class="tl-line"></div>':''}</div><div><div style="font-size:10px;font-weight:500;color:#b45309;text-transform:uppercase;letter-spacing:0.4px;">Step 2 — Maintenance Ack</div><div>Team acknowledged at ${inc.s2_time}</div></div></div>`:`<div style="font-size:12px;color:#a0a09a;padding:5px 0;">◦ Waiting for maintenance...</div>`}
+      ${inc.s3_time?`<div class="tl-row"><div class="tl-dot-wrap"><div class="tl-dot" style="background:#22c55e;"></div>${inc.step>3?'<div class="tl-line"></div>':''}</div><div><div style="font-size:10px;font-weight:500;color:#16a34a;text-transform:uppercase;letter-spacing:0.4px;">Step 3 — Maintenance Fixed</div><div>${inc.s3_note||'Issue resolved'}</div><div style="font-size:11px;color:#6b6b67;">Ready at ${inc.s3_time}</div></div></div>`:(inc.s2_time?`<div style="font-size:12px;color:#a0a09a;padding:5px 0;">◦ Waiting for fix confirmation...</div>`:'')}
+      ${inc.s4_time?`<div class="tl-row"><div class="tl-dot-wrap"><div class="tl-dot" style="background:#3b82f6;"></div></div><div><div style="font-size:10px;font-weight:500;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.4px;">Step 4 — Operator OK</div><div>Machine restarted at ${inc.s4_started_at}</div></div></div>`:(inc.s3_time?`<div style="font-size:12px;color:#a0a09a;padding:5px 0;">◦ Waiting for operator OK...</div>`:'')}
+    </div>${actionHtml}</div>`;
+}
+
+function renderMachineGrid(id){
+  const dc={running:'dot-r',idle:'dot-i',down:'dot-d',maintenance:'dot-m'};
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=machines.map(m=>`<div class="mc ${m.status}" onclick="showMachHistory(${m.num})"><div class="mc-alert"></div><button class="mc-edit" onclick="event.stopPropagation();startRename(${m.num})">✎</button><div class="mc-num">${m.num}</div><div class="mc-name">${m.name||''}</div><div class="mc-dot ${dc[m.status]}"></div><div class="mc-status">${m.status}</div></div>`).join('');
+}
+
+function showMachHistory(num){
+  const m=machines.find(x=>x.num===num);
+  const mInc=incidents.filter(x=>x.machine_num===num);
+  const card=document.getElementById('mach-detail-card');const title=document.getElementById('mach-detail-title');const body=document.getElementById('mach-detail-body');
+  if(!card)return;card.style.display='block';
+  title.textContent=`${mLabel(m)} — History (${mInc.length} incidents)`;
+  if(!mInc.length){body.innerHTML=`<div style="color:#a0a09a;font-size:12px;padding:8px 0;">No incidents recorded for this machine yet.</div>`;return;}
+  body.innerHTML=mInc.map(inc=>{
+    if(inc.step<4)return incCard(inc);
+    return`<div class="hist-item"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6b67;">${inc.id} · ${inc.date}</span><span style="font-size:11px;color:#6b6b67;">⏱ ${inc.total_downtime||'—'}</span></div><div style="font-weight:500;margin-bottom:2px;">${inc.s1_reason}</div>${inc.s1_print&&inc.s1_print!=='—'?`<div style="margin-bottom:4px;">${printTag(inc.s1_print)}</div>`:''}<div style="font-size:11px;color:#6b6b67;margin-bottom:5px;">By ${inc.s1_op} · Down ${inc.s1_time}${inc.s3_note?' · Fix: '+inc.s3_note:''}</div><div class="hist-steps"><span class="hstep hs1">Reported ${inc.s1_time}</span>${inc.s2_time?`<span class="hstep hs2">Ack ${inc.s2_time}</span>`:''}${inc.s3_time?`<span class="hstep hs3">Fixed ${inc.s3_time}</span>`:''}${inc.s4_time?`<span class="hstep hs4">Running ${inc.s4_started_at}</span>`:''}</div></div>`;
+  }).join('');
+}
+
+function renderOvDT(){
+  const el=document.getElementById('ov-dt-list');if(!el)return;
+  const open=incidents.filter(x=>x.step<4);
+  document.getElementById('ov-dt-badge').textContent=open.length+' open';
+  if(!open.length){el.innerHTML=`<div style="color:#a0a09a;font-size:12px;padding:6px 0;">No active alerts</div>`;return;}
+  const stepLabel=['Reported — awaiting maint.','Maintenance on it','Ready — awaiting operator',''];
+  const colors=['#ef4444','#f59e0b','#22c55e','#3b82f6'];
+  el.innerHTML=open.slice(0,4).map(inc=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:0.5px solid #e2e0d8;font-size:12px;cursor:pointer;" onclick="switchTab('downtime')"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;background:#f1efe8;border-radius:4px;padding:2px 5px;flex-shrink:0;">#${inc.machine_num}</span><div style="flex:1;"><div style="font-weight:500;">${inc.s1_reason}</div><div style="font-size:11px;color:#6b6b67;">${stepLabel[inc.step-1]}</div>${inc.s1_print&&inc.s1_print!=='—'?`<div style="margin-top:2px;">${printTag(inc.s1_print)}</div>`:''}</div><div style="width:8px;height:8px;border-radius:50%;background:${colors[inc.step-1]};flex-shrink:0;margin-top:3px;"></div></div>`).join('');
+  if(open.length>4)el.innerHTML+=`<div style="font-size:11px;color:#6b6b67;padding:6px 0;cursor:pointer;" onclick="switchTab('downtime')">+${open.length-4} more</div>`;
+}
+
+function renderOpenIssues(){
+  const el=document.getElementById('open-issues');if(!el)return;
+  const open=incidents.filter(x=>x.step<4);
+  document.getElementById('open-badge').textContent=open.length;
+  if(!open.length){el.innerHTML=`<div style="color:#a0a09a;font-size:12px;padding:6px 0;">No open issues</div>`;return;}
+  el.innerHTML=open.map(inc=>incCard(inc)).join('');
+}
+
+function renderFullLog(){
+  const el=document.getElementById('full-log');if(!el)return;
+  const closed=incidents.filter(x=>x.step>=4);
+  if(!closed.length){el.innerHTML=`<div style="color:#a0a09a;font-size:12px;padding:6px 0;">No resolved incidents yet</div>`;return;}
+  el.innerHTML=closed.map(inc=>`<div class="hist-item"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-bottom:4px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6b67;">${inc.id} · ${inc.date}</span><span style="font-size:11px;font-weight:500;color:#6b6b67;">⏱ ${inc.total_downtime||'—'}</span></div><div style="font-weight:500;margin-bottom:2px;">${mShort(machines.find(x=>x.num===inc.machine_num)||{num:inc.machine_num,name:''})} — ${inc.s1_reason}</div>${inc.s1_print&&inc.s1_print!=='—'?`<div style="margin-bottom:4px;">${printTag(inc.s1_print)}</div>`:''}<div style="font-size:11px;color:#6b6b67;margin-bottom:5px;">By ${inc.s1_op} · Down ${inc.s1_time}${inc.s3_note?' · Fix: '+inc.s3_note:''}</div><div class="hist-steps"><span class="hstep hs1">Reported ${inc.s1_time}</span>${inc.s2_time?`<span class="hstep hs2">Ack ${inc.s2_time}</span>`:''}${inc.s3_time?`<span class="hstep hs3">Fixed ${inc.s3_time}</span>`:''}${inc.s4_time?`<span class="hstep hs4">Running ${inc.s4_started_at}</span>`:''}</div></div>`).join('');
+}
+
+function renderOvJobs(){
+  const el=document.getElementById('ov-jobs');if(!el)return;
+  const active=jobs.filter(j=>j.status!=='done');
+  if(!active.length){el.innerHTML=`<tr><td colspan="5" style="color:#a0a09a;padding:8px;">No active jobs</td></tr>`;return;}
+  el.innerHTML=active.slice(0,5).map(j=>{const m=machines.find(x=>x.num===j.machine_num);return`<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${j.id}</td><td>${printTag(j.print)}</td><td>${m?mShort(m):'—'}</td><td><span class="pb-wrap"><span class="pb" style="width:${j.done}%;background:${j.done>=80?'#22c55e':j.done<30?'#f59e0b':'#3b82f6'};"></span></span><span style="font-size:11px;color:#6b6b67;margin-left:4px;">${j.done}%</span></td><td><span class="badge b-${j.status==='running'?'run':'pend'}">${j.status}</span></td></tr>`;}).join('');
+}
+
+function renderFullJobs(){
+  const el=document.getElementById('full-jobs');if(!el)return;
+  if(!jobs.length){el.innerHTML=`<tr><td colspan="9" style="color:#a0a09a;padding:8px;">No jobs yet</td></tr>`;return;}
+  el.innerHTML=jobs.map(j=>{const m=machines.find(x=>x.num===j.machine_num);return`<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${j.id}</td><td>${printTag(j.print)}</td><td>${m?mShort(m):'—'}</td><td>${j.operator||'—'}</td><td>${j.qty}k</td><td><span class="pb-wrap"><span class="pb" style="width:${j.done}%;background:${j.done>=80?'#22c55e':j.done<30?'#f59e0b':'#3b82f6'};"></span></span><span style="font-size:11px;color:#6b6b67;margin-left:4px;">${j.done}%</span></td><td><span class="badge b-${j.shift==='A'?'sa':j.shift==='B'?'sb':'sc'}">Shift ${j.shift}</span></td><td>${j.due}</td><td><span class="badge b-${j.status==='running'?'run':j.status==='done'?'done':'pend'}">${j.status}</span></td></tr>`;}).join('');
+}
+
+function renderShiftPanel(){
+  const sw=workers.filter(w=>w.shift===selectedShift&&w.role!=='Management'&&w.role!=='Floor Supervisor');
+  const el=document.getElementById('shift-team');if(el)el.innerHTML=renderWorkerList(sw);
+  document.getElementById('shift-label').textContent=`Shift ${selectedShift} Team`;
+  const sa=document.getElementById('shift-machines');if(!sa)return;
+  const range={A:[1,10],B:[11,20],C:[21,30]}[selectedShift];
+  const mlist=machines.filter(m=>m.num>=range[0]&&m.num<=range[1]);
+  const dc={running:'#22c55e',idle:'#f59e0b',down:'#ef4444',maintenance:'#6366f1'};
+  sa.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">${mlist.map(m=>`<div style="border:0.5px solid ${dc[m.status]}55;background:${dc[m.status]}0a;border-radius:8px;padding:8px;text-align:center;font-size:11px;"><div style="font-size:15px;font-weight:500;font-family:'IBM Plex Mono',monospace;">${m.num}</div><div style="color:#6b6b67;font-size:9px;">${m.name||''}</div><div style="color:${dc[m.status]};font-size:10px;margin-top:3px;">${m.status}</div></div>`).join('')}</div>`;
+}
+
+function renderWorkerList(list){
+  if(!list||!list.length)return`<div style="color:#a0a09a;font-size:12px;padding:6px 0;">No workers assigned</div>`;
+  return list.map(w=>`<div class="wr"><div class="av" style="background:${w.color}22;color:${w.color}">${w.name.split(' ').map(x=>x[0]).join('')}</div><div class="wi"><div class="wn">${w.name}</div><div class="wr-role">${w.role}</div></div><div class="wa">${w.machine_num?`Machine ${w.machine_num}`:''}</div></div>`).join('');
+}
+
+function renderInv(id,list){
+  const el=document.getElementById(id);if(!el)return;
+  if(!list.length){el.innerHTML=`<div style="color:#a0a09a;font-size:12px;padding:6px 0;">No items</div>`;return;}
+  el.innerHTML=list.map(item=>{const max=Math.max(item.qty,item.min_qty)*1.5;const pct=Math.min((item.qty/max)*100,100);const c=item.qty<item.min_qty?'#ef4444':item.qty<item.min_qty*1.5?'#f59e0b':'#22c55e';return`<div class="inv-row"><div class="inv-name">${item.name}</div><div style="background:#e2e0d8;border-radius:99px;height:4px;width:55px;display:inline-block;vertical-align:middle;"><div style="height:4px;border-radius:99px;background:${c};width:${pct}%;"></div></div><div class="inv-qty" style="color:${item.qty<item.min_qty?'#ef4444':item.qty<item.min_qty*1.5?'#f59e0b':'#1a1a18'}">${item.qty} ${item.unit}</div></div>`;}).join('');
+}
+
+function renderMachSummary(){
+  const el=document.getElementById('mach-summary');if(!el)return;
+  const run=machines.filter(m=>m.status==='running').length,idle=machines.filter(m=>m.status==='idle').length,down=machines.filter(m=>m.status==='down').length,maint=machines.filter(m=>m.status==='maintenance').length;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;text-align:center;">
+    <div style="padding:8px;background:#22c55e0a;border:0.5px solid #22c55e33;border-radius:8px;"><div style="font-size:20px;font-weight:500;color:#22c55e">${run}</div><div style="color:#6b6b67;">Running</div></div>
+    <div style="padding:8px;background:#f59e0b0a;border:0.5px solid #f59e0b33;border-radius:8px;"><div style="font-size:20px;font-weight:500;color:#f59e0b">${idle}</div><div style="color:#6b6b67;">Idle</div></div>
+    <div style="padding:8px;background:#ef44440a;border:0.5px solid #ef444433;border-radius:8px;"><div style="font-size:20px;font-weight:500;color:#ef4444">${down}</div><div style="color:#6b6b67;">Down</div></div>
+    <div style="padding:8px;background:#6366f10a;border:0.5px solid #6366f133;border-radius:8px;"><div style="font-size:20px;font-weight:500;color:#6366f1">${maint}</div><div style="color:#6b6b67;">Maint.</div></div>
+  </div>`;
+}
+
+function updateStats(){
+  const shift=getCurrentShift();
+  document.getElementById('s-run').textContent=machines.filter(m=>m.status==='running').length;
+  document.getElementById('s-dn').textContent=machines.filter(m=>m.status==='down').length;
+  document.getElementById('s-idle').textContent=machines.filter(m=>m.status==='idle'||m.status==='maintenance').length;
+  document.getElementById('s-jb').textContent=jobs.filter(j=>j.status!=='done').length;
+  document.getElementById('s-shift').textContent=shift.label;
+  document.getElementById('s-shift-time').textContent=shift.time;
+}
+
+function updateDTBadge(){
+  const open=incidents.filter(x=>x.step<4).length;
+  const tag=document.getElementById('dt-ntag');
+  if(tag){tag.textContent=open;tag.style.display=open>0?'inline-block':'none';}
+}
+
+function renderAll(){
+  renderMachineGrid('ov-grid');renderMachineGrid('full-grid');
+  renderOvDT();renderOvJobs();
+  const shift=getCurrentShift();
+  const shiftW=workers.filter(w=>w.shift===shift.key).slice(0,5);
+  document.getElementById('ov-team').innerHTML=renderWorkerList(shiftW);
+  renderFullJobs();renderShiftPanel();
+  document.getElementById('team-a').innerHTML=renderWorkerList(workers.filter(w=>w.shift==='A'));
+  document.getElementById('team-b').innerHTML=renderWorkerList(workers.filter(w=>w.shift==='B'));
+  document.getElementById('team-c').innerHTML=renderWorkerList(workers.filter(w=>w.shift==='C'));
+  document.getElementById('team-mgmt').innerHTML=renderWorkerList(workers.filter(w=>w.role==='Management'||w.role==='Floor Supervisor'||w.role==='Maintenance'));
+  renderOpenIssues();renderFullLog();
+  renderInv('inv-raw',inventory.filter(i=>i.category==='raw'));
+  renderInv('inv-parts',inventory.filter(i=>i.category==='maintenance'));
+  renderMachSummary();updateStats();updateDTBadge();populateDTForm();
+}
+
+// VOICE
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){recognition=new SR();recognition.continuous=false;recognition.interimResults=true;recognition.lang='en-US';
+  recognition.onstart=()=>{listening=true;document.getElementById('mic-btn').textContent='Listening...';document.getElementById('mic-btn').style.color='#ef4444';document.getElementById('wave-bars').classList.add('listening');document.getElementById('vb-status').textContent='Listening...';document.getElementById('vb-transcript').textContent='';document.getElementById('vb-result').classList.remove('show');};
+  recognition.onresult=(e)=>{let f='',ii='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)f+=e.results[i][0].transcript;else ii+=e.results[i][0].transcript;}document.getElementById('vb-transcript').textContent=f||ii;if(f)processVoice(f.trim());};
+  recognition.onerror=()=>stopListen();recognition.onend=()=>stopListen();
+}
+function toggleVoiceBar(){const bar=document.getElementById('voice-bar');const vt=document.getElementById('voice-toggle');bar.classList.toggle('open');vt.classList.toggle('active');document.getElementById('mic-dot').style.background=bar.classList.contains('open')?'#ef4444':'#a0a09a';}
+function toggleListen(){if(!recognition){showToast('Voice not supported — try Chrome or Edge');return;}if(listening){recognition.stop();stopListen();}else{try{recognition.start();}catch(e){}}}
+function stopListen(){listening=false;const btn=document.getElementById('mic-btn');btn.textContent='Tap to speak';btn.style.color='';document.getElementById('wave-bars').classList.remove('listening');document.getElementById('vb-status').textContent=document.getElementById('vb-transcript').textContent?'Command received — confirm below':'Voice ready — tap to speak';}
+function machNum(t){const m=t.match(/machine\s*(\d+)/i)||t.match(/#(\d+)/)||t.match(/\b(\d{1,2})\b/);return m?parseInt(m[1]):null;}
+function extractAfter(text,kws){for(const kw of kws){const i=text.toLowerCase().indexOf(kw.toLowerCase());if(i!==-1){const a=text.substring(i+kw.length).trim().split(/[,.]/)[0].trim();if(a.length>1)return a;}}return null;}
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s;}
+function processVoice(text){
+  const t=text.toLowerCase();const mNum=machNum(t);let action=null;
+  const printMatch=extractAfter(text,['print ','printing ','called ','design '])||'';
+  if(t.includes('on it')||t.includes('acknowledge')){const inc=incidents.find(x=>x.machine_num===mNum&&x.step===1);action={type:'step2',label:'Maintenance Acknowledge',fields:[{l:'Machine',v:`Machine ${mNum}`}],mNum,incId:inc?inc.id:null};}
+  else if((t.includes('fixed')||t.includes('ready'))&&mNum&&!t.includes('operator')){const inc=incidents.find(x=>x.machine_num===mNum&&x.step===2);action={type:'step3',label:'Maintenance: Fixed',fields:[{l:'Machine',v:`Machine ${mNum}`}],mNum,incId:inc?inc.id:null};}
+  else if((t.includes('operator ok')||(t.includes('ok')&&t.includes('running')))&&mNum){const inc=incidents.find(x=>x.machine_num===mNum&&x.step===3);action={type:'step4',label:'Operator OK',fields:[{l:'Machine',v:`Machine ${mNum}`}],mNum,incId:inc?inc.id:null};}
+  else if(t.includes('down')||t.includes('jam')||t.includes('fault')||t.includes('broken')){const issues=['paper jam','forming die','heat seal','belt','bearing','motor','blockage'];const issue=issues.find(i=>t.includes(i.split(' ')[0]))||extractAfter(text,['down','issue','fault','jam'])||'Fault';action={type:'step1',label:'Machine Down',fields:[{l:'Machine',v:mNum?`Machine ${mNum}`:'?'},{l:'Issue',v:cap(issue)},{l:'Print',v:printMatch||'—'}],mNum,issue:cap(issue),print:printMatch};}
+  else if(t.includes('job')||t.includes('print')){const print=extractAfter(text,['print ','job for '])||'—';const jid=`JOB-${Date.now()}`;action={type:'job',label:'New Job',fields:[{l:'Print',v:print},{l:'Machine',v:mNum?`Machine ${mNum}`:'TBD'}],mNum,print,jid};}
+  else{action={type:'note',label:'Note',fields:[{l:'Message',v:cap(text)}]};}
+  pendingVoice=action;
+  document.getElementById('vb-rtype').textContent=action.label;
+  document.getElementById('vb-fields').innerHTML=action.fields.map(f=>`<div class="vb-field"><span class="vbfl">${f.l}:</span><span class="vbfv">&nbsp;${f.v}</span></div>`).join('');
+  document.getElementById('vb-result').classList.add('show');
+}
+async function confirmVoice(){
+  if(!pendingVoice)return;const a=pendingVoice;
+  if(a.type==='step1'&&a.mNum){const m=machines.find(x=>x.num===a.mNum);if(m)m.status='down';const id=`DT-${String(incCounter++).padStart(3,'0')}`;const inc={id,machine_num:a.mNum,date:todayStr(),step:1,s1_time:nowTime(),s1_op:'Voice',s1_reason:a.issue||'Fault',s1_print:a.print||'—',s1_logged_at:nowTime()};await db.insert('incidents',inc);await db.update('machines',{num:a.mNum},{status:'down'});incidents.unshift({...inc});showToast(`Machine ${a.mNum} reported down`);}
+  else if(a.type==='step2'&&a.incId)await step2(a.incId);
+  else if(a.type==='step3'&&a.incId){const inc=incidents.find(x=>x.id===a.incId);if(inc){const t=nowTime();await db.update('incidents',{id:a.incId},{step:3,s3_time:t,s3_note:''});inc.step=3;inc.s3_time=t;showToast(`Machine ${a.mNum} marked ready`);}}
+  else if(a.type==='step4'&&a.incId)await step4(a.incId);
+  else if(a.type==='job'){const job={id:a.jid,print:a.print,machine_num:a.mNum||1,operator:'—',qty:50,done:0,shift:getCurrentShift().key,due:'TBD',status:'pending'};await db.insert('jobs',job);jobs.unshift(job);showToast(`Job created`);}
+  else showToast('Logged');
+  document.getElementById('vb-result').classList.remove('show');document.getElementById('vb-transcript').textContent='';document.getElementById('vb-status').textContent='Voice ready — tap to speak';pendingVoice=null;renderAll();updateDTBadge();
+}
+function cancelVoice(){document.getElementById('vb-result').classList.remove('show');document.getElementById('vb-transcript').textContent='';pendingVoice=null;}
+function simulate(text){if(!document.getElementById('voice-bar').classList.contains('open'))toggleVoiceBar();document.getElementById('vb-transcript').textContent=text;processVoice(text);}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+
+loadAll();
+</script>
+</body>
+</html>
