@@ -558,7 +558,7 @@ function incCard(inc){
 function renderMachineGrid(id){
   const dc={running:'dot-r',idle:'dot-i',down:'dot-d',maintenance:'dot-m'};
   const el=document.getElementById(id);if(!el)return;
-  el.innerHTML=machines.map(m=>`<div class="mc ${m.status}" onclick="showMachHistory(${m.num})"><div class="mc-alert"></div><button class="mc-edit" onclick="event.stopPropagation();startRename(${m.num})">✎</button><div class="mc-num">${m.num}</div><div class="mc-name">${m.name||''}</div><div class="mc-dot ${dc[m.status]}"></div><div class="mc-status">${m.status}</div></div>`).join('');
+  el.innerHTML=machines.map(m=>`<div class="mc ${m.status}" onclick="showMachHistory(${m.num})"><div class="mc-alert"></div><button class="mc-edit" onclick="event.stopPropagation();startRename(${m.num})">✎</button><div class="mc-num">${m.num}</div><div class="mc-name">${m.name||''}</div><div class="mc-dot ${dc[m.status]}"></div><div class="style="font-size:9px;font-weight:500;color:${m.size?m.size.includes('DW')?'#6d28d9':'#1d4ed8':'var(--text2)'}\">${m.size||m.status}</div></div>`).join('');
 }
 
 function showMachHistory(num){
